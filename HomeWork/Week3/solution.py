@@ -10,6 +10,6 @@ class FileReader:
             return ""
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     reader = FileReader("D:/my_file.txt")
     print(reader.read())
