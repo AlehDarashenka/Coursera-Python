@@ -8,19 +8,38 @@ DOCS_PATH = path.join(
     'Docs')
 
 class CarBase:
+    #csv row indexes
+    ix_car_type = 0
+    ix_brand = 1
+    ix_passenger_seats_count = 2
+    ix_photo_file_name = 3
+    ix_body_whl = 4
+    ix_carrying = 5
+    ix_extra = 6
+
     def __init__(self, brand, photo_file_name, carrying):
         self.brand = brand
         self.photo_file_name = photo_file_name
         self.carrying = float(carrying)
 
     def get_photo_file_ext(self):
-        return path.splitext(self.photo_file_name)[1]
+        _, ext = path.splitext(self.photo_file_name)
+        return ext
 
 class Car(CarBase):
     car_type = 'car'
     def __init__(self, brand, photo_file_name, carrying, passenger_seats_count):
         super().__init__(brand, photo_file_name, carrying)
         self.passenger_seats_count = int(passenger_seats_count)
+
+    @classmethod
+    def from_tuple(cls, row):
+        return cls(
+            row[cls.ix_brand],
+            row[cls.ix_photo_file_name],
+            row[cls.ix_carrying],
+            row[cls.ix_passenger_seats_count]
+        )
 
 
 class Truck(CarBase):
@@ -48,6 +67,15 @@ class Truck(CarBase):
     def body_length(self):
         return Truck._body_component_splitter(self._body_whl)[2]
 
+    @classmethod
+    def from_tuple(cls, row):
+        return cls(
+            row[cls.ix_brand],
+            row[cls.ix_photo_file_name],
+            row[cls.ix_carrying],
+            row[cls.ix_body_whl]
+        )
+
     def get_body_volume(self):
         return self.body_height*self.body_width*self.body_length
 
@@ -58,28 +86,32 @@ class SpecMachine(CarBase):
         super().__init__(brand, photo_file_name, carrying)
         self.extra = extra
 
+    @classmethod
+    def from_tuple(cls, row):
+        return cls(
+            row[cls.ix_brand],
+            row[cls.ix_photo_file_name],
+            row[cls.ix_carrying],
+            row[cls.ix_extra]
+        )
+
 
 
 def get_car_list(csv_filename):
     car_list = []
-    with open(path.join(DOCS_PATH,csv_filename)) as csv_fd:
+    car_strategy = {car_class.car_type: car_class for car_class in (Car, Truck, SpecMachine)}
+
+    with open(path.join(DOCS_PATH, csv_filename)) as csv_fd:
         reader = csv.reader(csv_fd, delimiter=';')
         next(reader)  # skip header
         for row in reader:
             try:
-                if row[0] == Car.car_type:
-                    car_list.append(Car(row[1], row[3], row[5],row[2]))
-                elif row[0] == Truck.car_type:
-                    car_list.append(Truck(row[1], row[3],row[5], row[4]))
-                elif row[0] == SpecMachine.car_type:
-                    car_list.append(SpecMachine(row[1], row[3], row[5],row[6]))
-            except IndexError:
-                pass
-            except ValueError:
-                pass
+                car_list.append(car_strategy[row[CarBase.ix_car_type]].from_tuple(row))
+            except (IndexError, ValueError, KeyError):
+                continue
             print(row)
 
-        return car_list
+    return car_list
 
 
 if __name__ == '__main__':
